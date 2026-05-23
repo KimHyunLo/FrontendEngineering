@@ -1,25 +1,20 @@
 "use client";
 
-import { createInitialState } from "@/src/planner";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer } from "react";
 import type { EventDraft, TaskDraft } from "@/src/planner";
 import { plannerReducer, readPlannerState, STORAGE_KEY } from "./plannerReducer";
 
 export function usePlannerStore() {
-  const [state, dispatch] = useReducer(plannerReducer, undefined, () => createInitialState());
-  const [hydrated, setHydrated] = useState(false);
+  const [state, dispatch] = useReducer(plannerReducer, undefined);
 
   useEffect(() => {
     dispatch({ type: "replace", state: readPlannerState() });
-    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (!hydrated) {
-      return;
-    }
+    if (state === undefined) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [hydrated, state]);
+  }, [state]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -31,7 +26,7 @@ export function usePlannerStore() {
 
   return {
     state,
-    hydrated,
+    hydrated: state !== undefined,
     actions: {
       selectDate(date: string) {
         dispatch({ type: "selectDate", date });

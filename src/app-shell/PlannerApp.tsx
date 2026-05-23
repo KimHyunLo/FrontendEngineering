@@ -24,7 +24,6 @@ export function PlannerApp({ view, initialDate }: PlannerAppProps) {
   const { state, hydrated, actions } = usePlannerStore();
   const router = useRouter();
   const routeDate = normalizeDate(initialDate);
-  const toolbarTitle = view === "month" ? formatMonth(state.visibleMonth) : formatWeekTitle(state.selectedDate);
 
   useEffect(() => {
     if (!hydrated) {
@@ -39,17 +38,22 @@ export function PlannerApp({ view, initialDate }: PlannerAppProps) {
     }
   }, [hydrated, routeDate, router, view]);
 
+  if (state === undefined) return null;
+
+  const loadedState = state;
+  const toolbarTitle = view === "month" ? formatMonth(loadedState.visibleMonth) : formatWeekTitle(loadedState.selectedDate);
+
   function selectDate(date: string) {
     actions.selectDate(date);
     router.replace(routeFor(view, date), { scroll: false });
   }
 
   function movePrevious() {
-    selectDate(view === "month" ? addMonths(state.visibleMonth, -1) : addDays(state.selectedDate, -7));
+    selectDate(view === "month" ? addMonths(loadedState.visibleMonth, -1) : addDays(loadedState.selectedDate, -7));
   }
 
   function moveNext() {
-    selectDate(view === "month" ? addMonths(state.visibleMonth, 1) : addDays(state.selectedDate, 7));
+    selectDate(view === "month" ? addMonths(loadedState.visibleMonth, 1) : addDays(loadedState.selectedDate, 7));
   }
 
   function selectToday() {

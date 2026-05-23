@@ -28,10 +28,11 @@ export type PlannerAction =
   | { type: "snoozeNotification"; id: string; minutes: number }
   | { type: "refreshNotifications" };
 
-export function plannerReducer(state: PlannerState, action: PlannerAction): PlannerState {
+export function plannerReducer(state: PlannerState | undefined, action: PlannerAction): PlannerState | undefined {
+  if (action.type === "replace") return action.state;
+  if (state === undefined) return undefined;
+
   switch (action.type) {
-    case "replace":
-      return action.state;
     case "selectDate":
       return {
         ...state,
