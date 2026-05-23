@@ -1,12 +1,12 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useReducer, useState } from "react";
 import { Modal } from "@/src/components/Modal";
 import { formatDate, getTasksForDate, nowLocalDateTime } from "@/src/planner";
 import type { Priority, Task, TaskDraft } from "@/src/planner";
+import { INITIAL_MODAL_STATE, taskModalReducer } from "@/src/hooks/taskModalReducer";
 
 type TaskFilter = "selected" | "open" | "done" | "all";
-type TaskModalMode = "create" | "edit";
 
 interface TaskPanelProps {
   selectedDate: string;
@@ -18,14 +18,8 @@ interface TaskPanelProps {
 }
 
 export function TaskPanel({ selectedDate, tasks, onAddTask, onUpdateTask, onToggleTask, onDeleteTask }: TaskPanelProps) {
-  const [title, setTitle] = useState("");
-  const [dueDate, setDueDate] = useState(selectedDate);
-  const [priority, setPriority] = useState<Priority>("medium");
-  const [note, setNote] = useState("");
-  const [reminderAt, setReminderAt] = useState("");
+  const [modal, dispatch] = useReducer(taskModalReducer, INITIAL_MODAL_STATE);
   const [filter, setFilter] = useState<TaskFilter>("selected");
-  const [modalMode, setModalMode] = useState<TaskModalMode | null>(null);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   const visibleTasks = useMemo(() => {
     if (filter === "selected") {
@@ -41,46 +35,33 @@ export function TaskPanel({ selectedDate, tasks, onAddTask, onUpdateTask, onTogg
   }, [filter, selectedDate, tasks]);
 
   function openCreateModal() {
-    setTitle("");
-    setDueDate(selectedDate);
-    setPriority("medium");
-    setNote("");
-    setReminderAt("");
-    setEditingTaskId(null);
-    setModalMode("create");
+    dispatch({ type: "OPEN_CREATE", selectedDate });
   }
 
   function openEditModal(task: Task) {
-    setTitle(task.title);
-    setDueDate(task.dueDate);
-    setPriority(task.priority);
-    setNote(task.note ?? "");
-    setReminderAt(task.reminderAt ?? "");
-    setEditingTaskId(task.id);
-    setModalMode("edit");
+    dispatch({ type: "OPEN_EDIT", task });
   }
 
   function closeModal() {
-    setModalMode(null);
-    setEditingTaskId(null);
+    dispatch({ type: "CLOSE" });
   }
 
   function submitTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!title.trim()) {
+    if (!modal.title.trim()) {
       return;
     }
 
-    const draft = {
-      title,
-      dueDate,
-      priority,
-      note,
-      reminderAt: reminderAt || null
+    const draft: TaskDraft = {
+      title: modal.title,
+      dueDate: modal.dueDate,
+      priority: modal.priority,
+      note: modal.note,
+      reminderAt: modal.reminderAt || null
     };
 
-    if (modalMode === "edit" && editingTaskId) {
-      onUpdateTask(editingTaskId, draft);
+    if (modal.mode === "edit" && modal.editingTaskId) {
+      onUpdateTask(modal.editingTaskId, draft);
     } else {
       onAddTask(draft);
     }
@@ -143,21 +124,21 @@ export function TaskPanel({ selectedDate, tasks, onAddTask, onUpdateTask, onTogg
           )}
         </div>
       </div>
-      {modalMode ? (
-        <Modal title={modalMode === "edit" ? "할 일 수정" : "할 일 추가"} onClose={closeModal}>
+      {modal.mode ? (
+        <Modal title={modal.mode === "edit" ? "할 일 수정" : "할 일 추가"} onClose={closeModal}>
           <form className="modal-form" onSubmit={submitTask}>
             <div className="field">
               <label htmlFor="task-title">제목</label>
-              <input id="task-title" value={title} onChange={(event) => setTitle(event.target.value)} autoFocus />
+              <input id="task-title" value={modal.title} onChange={(event) => dispatch({ type: "SET_TITLE", value: event.target.value })} autoFocus />
             </div>
             <div className="modal-form-grid">
               <div className="field">
                 <label htmlFor="task-date">마감일</label>
-                <input id="task-date" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+                <input id="task-date" type="date" value={modal.dueDate} onChange={(event) => dispatch({ type: "SET_DUE_DATE", value: event.target.value })} />
               </div>
               <div className="field">
                 <label htmlFor="task-priority">우선순위</label>
-                <select id="task-priority" value={priority} onChange={(event) => setPriority(event.target.value as Priority)}>
+                <select id="task-priority" value={modal.priority} onChange={(event) => dispatch({ type: "SET_PRIORITY", value: event.target.value as Priority })}>
                   <option value="high">높음</option>
                   <option value="medium">보통</option>
                   <option value="low">낮음</option>
@@ -169,14 +150,14 @@ export function TaskPanel({ selectedDate, tasks, onAddTask, onUpdateTask, onTogg
               <input
                 id="task-reminder"
                 type="datetime-local"
-                min={modalMode === "edit" && reminderAt ? reminderAt : nowLocalDateTime()}
-                value={reminderAt}
-                onChange={(event) => setReminderAt(event.target.value)}
+                min={modal.mode === "edit" && modal.reminderAt ? modal.reminderAt : nowLocalDateTime()}
+                value={modal.reminderAt}
+                onChange={(event) => dispatch({ type: "SET_REMINDER_AT", value: event.target.value })}
               />
             </div>
             <div className="field">
               <label htmlFor="task-note">메모</label>
-              <textarea id="task-note" value={note} onChange={(event) => setNote(event.target.value)} />
+              <textarea id="task-note" value={modal.note} onChange={(event) => dispatch({ type: "SET_NOTE", value: event.target.value })} />
             </div>
             <div className="modal-footer">
               <button className="secondary-button" type="button" onClick={closeModal}>
