@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { compareDateTime, formatDateTime } from "@/src/planner";
 
 type NotificationFilter = "ready" | "scheduled" | "read" | "all";
@@ -19,16 +19,18 @@ interface NotificationMenuProps {
   onSnooze(id: string, minutes: number): void;
 }
 
+const filterNotifications = (notifications: Notification[], filter: NotificationFilter) => notifications
+  .filter((notification) => filter === "all" || notification.status === filter);
+
+const sortNotifications = (notifications: Notification[]) => notifications
+  .sort((left, right) => compareDateTime(left.notifyAt, right.notifyAt));
+
 export function NotificationMenu({ notifications, onRead, onSnooze }: NotificationMenuProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<NotificationFilter>("ready");
   const readyCount = notifications.filter((notification) => notification.status === "ready").length;
 
-  const visibleNotifications = useMemo(() => {
-    return notifications
-      .filter((notification) => filter === "all" || notification.status === filter)
-      .sort((left, right) => compareDateTime(left.notifyAt, right.notifyAt));
-  }, [filter, notifications]);
+  const visibleNotifications = sortNotifications(filterNotifications(notifications, filter))
 
   return (
     <div className="notification-menu-wrap">
