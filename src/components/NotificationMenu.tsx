@@ -2,12 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { compareDateTime, formatDateTime } from "@/src/planner";
-import type { PlannerNotification } from "@/src/planner";
 
 type NotificationFilter = "ready" | "scheduled" | "read" | "all";
 
+type Notification = {
+  status: "ready" | "scheduled" | "read";
+  title: string;
+  body: string;
+  notifyAt: string;
+  id: string;
+}
+
 interface NotificationMenuProps {
-  notifications: PlannerNotification[];
+  notifications: Notification[]
   onRead(id: string): void;
   onSnooze(id: string, minutes: number): void;
 }
@@ -100,7 +107,7 @@ const notificationFilters: Array<{ value: NotificationFilter; label: string }> =
   { value: "all", label: "전체" }
 ];
 
-const statusLabel: Record<PlannerNotification["status"], string> = {
+const statusLabel: Record<Notification["status"], string> = {
   scheduled: "예정",
   ready: "도착",
   read: "확인"
