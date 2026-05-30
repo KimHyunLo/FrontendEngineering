@@ -81,7 +81,7 @@ export interface WeekDay {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+export const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
 
 /**
  * 고유 ID를 생성한다.
@@ -441,6 +441,22 @@ export function updateEventFromDraft(event: ScheduleEvent, draft: EventDraft): S
 }
 
 /**
+ * `ScheduleEvent`를 `EventDraft`로 변환한다. 편집 모달을 열 때 초기값으로 사용된다.
+ * @param event 변환할 일정
+ */
+export function eventToDraft(event: ScheduleEvent): EventDraft {
+  return {
+    title: event.title,
+    date: event.date,
+    startTime: event.startTime,
+    endTime: event.endTime,
+    category: event.category,
+    note: event.note ?? "",
+    reminderAt: event.reminderAt
+  };
+}
+
+/**
  * 태스크의 `reminderAt`으로부터 알림 객체를 생성한다.
  * `reminderAt`이 null이면 `null`을 반환한다.
  * @param task 알림을 생성할 태스크
@@ -515,6 +531,21 @@ export function snoozeNotification(notification: PlannerNotification, minutes: n
     status: "scheduled"
   };
 }
+
+/** `EventCategory` 값을 CSS 클래스 이름으로 매핑한다. */
+export const EVENT_CATEGORY_CLASS: Record<EventCategory, string> = {
+  work: "category-work",
+  personal: "category-personal",
+  study: "category-study",
+  health: "category-health"
+};
+
+/** `Priority` 값을 CSS 클래스 이름으로 매핑한다. */
+export const TASK_PRIORITY_CLASS: Record<Priority, string> = {
+  high: "priority-high",
+  medium: "priority-medium",
+  low: "priority-low"
+};
 
 /**
  * 우선순위를 정렬 가중치 숫자로 변환한다. high=3, medium=2, low=1.

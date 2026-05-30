@@ -121,7 +121,10 @@ export function PlannerApp({ view, initialDate }: PlannerAppProps) {
         <aside className="calendar-sidebar">
           {view === "week" ? (
             <MiniCalendar
-              state={state}
+              tasks={loadedState.tasks}
+              events={loadedState.events}
+              selectedDate={loadedState.selectedDate}
+              visibleMonth={loadedState.visibleMonth}
               onSelectDate={selectDate}
               onVisibleMonthChange={actions.setVisibleMonth}
             />
@@ -144,10 +147,18 @@ export function PlannerApp({ view, initialDate }: PlannerAppProps) {
         </aside>
 
         {view === "month" ? (
-          <CalendarPanel state={state} onSelectDate={selectDate} />
+          <CalendarPanel
+            tasks={loadedState.tasks}
+            events={loadedState.events}
+            selectedDate={loadedState.selectedDate}
+            visibleMonth={loadedState.visibleMonth}
+            onSelectDate={selectDate}
+          />
         ) : (
           <WeekTimeline
-            state={state}
+            tasks={loadedState.tasks}
+            events={loadedState.events}
+            selectedDate={loadedState.selectedDate}
             onSelectDate={selectDate}
             onAddEvent={addEvent}
             onUpdateEvent={updateEvent}

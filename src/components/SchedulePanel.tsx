@@ -2,12 +2,9 @@
 
 import { useState } from "react";
 import { EventEditorModal } from "@/src/components/EventEditorModal";
-import { formatDate, getEventsForDate } from "@/src/planner";
+import type { EventEditorState } from "@/src/components/EventEditorModal";
+import { eventToDraft, formatDate, getEventsForDate } from "@/src/planner";
 import type { EventCategory, EventDraft, ScheduleEvent } from "@/src/planner";
-
-type EventModalState =
-  | { mode: "create"; draft: EventDraft }
-  | { mode: "edit"; eventId: string; draft: EventDraft };
 
 interface SchedulePanelProps {
   selectedDate: string;
@@ -18,7 +15,7 @@ interface SchedulePanelProps {
 }
 
 export function SchedulePanel({ selectedDate, events, onAddEvent, onUpdateEvent, onDeleteEvent }: SchedulePanelProps) {
-  const [modalState, setModalState] = useState<EventModalState | null>(null);
+  const [modalState, setModalState] = useState<EventEditorState | null>(null);
   const selectedEvents = getEventsForDate(events, selectedDate);
 
   function openCreateModal() {
@@ -40,7 +37,7 @@ export function SchedulePanel({ selectedDate, events, onAddEvent, onUpdateEvent,
     setModalState({
       mode: "edit",
       eventId: event.id,
-      draft: toDraft(event)
+      draft: eventToDraft(event)
     });
   }
 
@@ -106,18 +103,6 @@ export function SchedulePanel({ selectedDate, events, onAddEvent, onUpdateEvent,
       ) : null}
     </section>
   );
-}
-
-function toDraft(event: ScheduleEvent): EventDraft {
-  return {
-    title: event.title,
-    date: event.date,
-    startTime: event.startTime,
-    endTime: event.endTime,
-    category: event.category,
-    note: event.note ?? "",
-    reminderAt: event.reminderAt
-  };
 }
 
 const categoryLabel: Record<EventCategory, string> = {
