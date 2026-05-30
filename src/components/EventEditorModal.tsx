@@ -5,6 +5,10 @@ import { Modal } from "@/src/components/Modal";
 import { nowLocalDateTime } from "@/src/planner";
 import type { EventCategory, EventDraft } from "@/src/planner";
 
+export type EventEditorState =
+  | { mode: "create"; draft: EventDraft }
+  | { mode: "edit"; eventId: string; draft: EventDraft };
+
 interface EventEditorModalProps {
   title: string;
   initialDraft: EventDraft;
