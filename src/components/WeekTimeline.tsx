@@ -20,13 +20,13 @@ interface WeekTimelineProps {
   tasks: Task[];
   events: ScheduleEvent[];
   selectedDate: IsoDate;
-  onSelectDate(date: string): void;
+  onSelectDate(date: IsoDate): void;
   onAddEvent(draft: EventDraft): void;
   onUpdateEvent(id: string, draft: EventDraft): void;
 }
 
 interface DragState {
-  date: string;
+  date: IsoDate;
   start: number;
   end: number;
   moved: boolean;
@@ -37,7 +37,7 @@ export function WeekTimeline({ tasks, events, selectedDate, onSelectDate, onAddE
   const [editor, setEditor] = useState<EventEditorState | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
 
-  function startDrag(event: ReactPointerEvent<HTMLDivElement>, date: string) {
+  function startDrag(event: ReactPointerEvent<HTMLDivElement>, date: IsoDate) {
     if (event.button !== 0) {
       return;
     }
@@ -49,7 +49,7 @@ export function WeekTimeline({ tasks, events, selectedDate, onSelectDate, onAddE
     event.preventDefault();
   }
 
-  function moveDrag(event: ReactPointerEvent<HTMLDivElement>, date: string) {
+  function moveDrag(event: ReactPointerEvent<HTMLDivElement>, date: IsoDate) {
     const end = minutesFromPointer(event);
 
     setDrag((current) => {
@@ -65,7 +65,7 @@ export function WeekTimeline({ tasks, events, selectedDate, onSelectDate, onAddE
     });
   }
 
-  function finishDrag(event: ReactPointerEvent<HTMLDivElement>, date: string) {
+  function finishDrag(event: ReactPointerEvent<HTMLDivElement>, date: IsoDate) {
     if (!drag || drag.date !== date) {
       return;
     }

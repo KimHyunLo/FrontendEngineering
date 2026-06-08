@@ -8,7 +8,7 @@ interface CalendarPanelProps {
   events: ScheduleEvent[];
   selectedDate: IsoDate;
   visibleMonth: IsoDate;
-  onSelectDate(date: string): void;
+  onSelectDate(date: IsoDate): void;
 }
 
 export function CalendarPanel({ tasks, events, selectedDate, visibleMonth, onSelectDate }: CalendarPanelProps) {

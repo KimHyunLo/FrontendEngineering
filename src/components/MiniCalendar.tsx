@@ -8,8 +8,8 @@ interface MiniCalendarProps {
   events: ScheduleEvent[];
   selectedDate: IsoDate;
   visibleMonth: IsoDate;
-  onSelectDate(date: string): void;
-  onVisibleMonthChange(month: string): void;
+  onSelectDate(date: IsoDate): void;
+  onVisibleMonthChange(month: IsoDate): void;
 }
 
 export function MiniCalendar({ tasks, events, selectedDate, visibleMonth, onSelectDate, onVisibleMonthChange }: MiniCalendarProps) {

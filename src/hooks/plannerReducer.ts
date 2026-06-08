@@ -4,19 +4,20 @@ import {
   createInitialState,
   createTaskFromDraft,
   createTaskNotification,
+  parseIsoDate,
   refreshNotificationStatuses,
   snoozeNotification,
   updateEventFromDraft,
   updateTaskFromDraft
 } from "@/src/planner";
-import type { EventDraft, PlannerState, TaskDraft } from "@/src/planner";
+import type { EventDraft, IsoDate, PlannerState, TaskDraft } from "@/src/planner";
 
 export const STORAGE_KEY = "plain-planner:v1";
 
 export type PlannerAction =
   | { type: "replace"; state: PlannerState }
-  | { type: "selectDate"; date: string }
-  | { type: "setVisibleMonth"; month: string }
+  | { type: "selectDate"; date: IsoDate }
+  | { type: "setVisibleMonth"; month: IsoDate }
   | { type: "addTask"; draft: TaskDraft }
   | { type: "updateTask"; id: string; draft: TaskDraft }
   | { type: "toggleTask"; id: string }
@@ -155,8 +156,8 @@ export function readPlannerState(): PlannerState {
       tasks: Array.isArray(parsed.tasks) ? parsed.tasks : fallback.tasks,
       events: Array.isArray(parsed.events) ? parsed.events : fallback.events,
       notifications: Array.isArray(parsed.notifications) ? parsed.notifications : fallback.notifications,
-      selectedDate: typeof parsed.selectedDate === "string" ? parsed.selectedDate : fallback.selectedDate,
-      visibleMonth: typeof parsed.visibleMonth === "string" ? parsed.visibleMonth : fallback.visibleMonth
+      selectedDate: (typeof parsed.selectedDate === "string" ? parseIsoDate(parsed.selectedDate) : null) ?? fallback.selectedDate,
+      visibleMonth: (typeof parsed.visibleMonth === "string" ? parseIsoDate(parsed.visibleMonth) : null) ?? fallback.visibleMonth
     };
   } catch {
     return fallback;

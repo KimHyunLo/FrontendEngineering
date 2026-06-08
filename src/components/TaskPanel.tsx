@@ -1,15 +1,15 @@
 "use client";
 
-import { FormEvent, useMemo, useReducer, useState } from "react";
-import { Modal } from "@/src/components/Modal";
-import { formatDate, getTasksForDate, nowLocalDateTime } from "@/src/planner";
-import type { Priority, Task, TaskDraft } from "@/src/planner";
-import { INITIAL_MODAL_STATE, taskModalReducer } from "@/src/hooks/taskModalReducer";
+import { useMemo, useState } from "react";
+import { formatDate, getTasksForDate, makeDefaultTaskDraft, PRIORITY_LABEL, taskToDraft } from "@/src/planner";
+import type { IsoDate, Task, TaskDraft } from "@/src/planner";
+import { TaskEditorModal } from "@/src/components/TaskEditorModal";
+import type { TaskEditorState } from "@/src/components/TaskEditorModal";
 
 type TaskFilter = "selected" | "open" | "done" | "all";
 
 interface TaskPanelProps {
-  selectedDate: string;
+  selectedDate: IsoDate;
   tasks: Task[];
   onAddTask(draft: TaskDraft): void;
   onUpdateTask(id: string, draft: TaskDraft): void;
@@ -18,7 +18,7 @@ interface TaskPanelProps {
 }
 
 export function TaskPanel({ selectedDate, tasks, onAddTask, onUpdateTask, onToggleTask, onDeleteTask }: TaskPanelProps) {
-  const [modal, dispatch] = useReducer(taskModalReducer, INITIAL_MODAL_STATE);
+  const [modalState, setModalState] = useState<TaskEditorState | null>(null);
   const [filter, setFilter] = useState<TaskFilter>("selected");
 
   const visibleTasks = useMemo(() => {
@@ -35,37 +35,11 @@ export function TaskPanel({ selectedDate, tasks, onAddTask, onUpdateTask, onTogg
   }, [filter, selectedDate, tasks]);
 
   function openCreateModal() {
-    dispatch({ type: "OPEN_CREATE", selectedDate });
+    setModalState({ mode: "create", draft: makeDefaultTaskDraft(selectedDate) });
   }
 
   function openEditModal(task: Task) {
-    dispatch({ type: "OPEN_EDIT", task });
-  }
-
-  function closeModal() {
-    dispatch({ type: "CLOSE" });
-  }
-
-  function submitTask(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!modal.title.trim()) {
-      return;
-    }
-
-    const draft: TaskDraft = {
-      title: modal.title,
-      dueDate: modal.dueDate,
-      priority: modal.priority,
-      note: modal.note,
-      reminderAt: modal.reminderAt || null
-    };
-
-    if (modal.mode === "edit" && modal.editingTaskId) {
-      onUpdateTask(modal.editingTaskId, draft);
-    } else {
-      onAddTask(draft);
-    }
-    closeModal();
+    setModalState({ mode: "edit", taskId: task.id, draft: taskToDraft(task) });
   }
 
   return (
@@ -102,7 +76,7 @@ export function TaskPanel({ selectedDate, tasks, onAddTask, onUpdateTask, onTogg
                     <div className="item-title">{task.title}</div>
                     <div className="item-meta">
                       <span className="tag">{formatDate(task.dueDate)}</span>
-                      <span className="tag">{priorityLabel[task.priority]}</span>
+                      <span className="tag">{PRIORITY_LABEL[task.priority]}</span>
                       {task.reminderAt ? <span className="tag">{task.reminderAt.replace("T", " ")}</span> : null}
                     </div>
                     {task.note ? <div className="item-note">{task.note}</div> : null}
@@ -124,51 +98,21 @@ export function TaskPanel({ selectedDate, tasks, onAddTask, onUpdateTask, onTogg
           )}
         </div>
       </div>
-      {modal.mode ? (
-        <Modal title={modal.mode === "edit" ? "할 일 수정" : "할 일 추가"} onClose={closeModal}>
-          <form className="modal-form" onSubmit={submitTask}>
-            <div className="field">
-              <label htmlFor="task-title">제목</label>
-              <input id="task-title" value={modal.title} onChange={(event) => dispatch({ type: "SET_TITLE", value: event.target.value })} autoFocus />
-            </div>
-            <div className="modal-form-grid">
-              <div className="field">
-                <label htmlFor="task-date">마감일</label>
-                <input id="task-date" type="date" value={modal.dueDate} onChange={(event) => dispatch({ type: "SET_DUE_DATE", value: event.target.value })} />
-              </div>
-              <div className="field">
-                <label htmlFor="task-priority">우선순위</label>
-                <select id="task-priority" value={modal.priority} onChange={(event) => dispatch({ type: "SET_PRIORITY", value: event.target.value as Priority })}>
-                  <option value="high">높음</option>
-                  <option value="medium">보통</option>
-                  <option value="low">낮음</option>
-                </select>
-              </div>
-            </div>
-            <div className="field">
-              <label htmlFor="task-reminder">알림 시간</label>
-              <input
-                id="task-reminder"
-                type="datetime-local"
-                min={modal.mode === "edit" && modal.reminderAt ? modal.reminderAt : nowLocalDateTime()}
-                value={modal.reminderAt}
-                onChange={(event) => dispatch({ type: "SET_REMINDER_AT", value: event.target.value })}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="task-note">메모</label>
-              <textarea id="task-note" value={modal.note} onChange={(event) => dispatch({ type: "SET_NOTE", value: event.target.value })} />
-            </div>
-            <div className="modal-footer">
-              <button className="secondary-button" type="button" onClick={closeModal}>
-                취소
-              </button>
-              <button className="primary-button" type="submit">
-                저장
-              </button>
-            </div>
-          </form>
-        </Modal>
+      {modalState ? (
+        <TaskEditorModal
+          title={modalState.mode === "edit" ? "할 일 수정" : "할 일 추가"}
+          initialDraft={modalState.draft}
+          isEditing={modalState.mode === "edit"}
+          onClose={() => setModalState(null)}
+          onSubmit={(draft) => {
+            if (modalState.mode === "edit") {
+              onUpdateTask(modalState.taskId, draft);
+            } else {
+              onAddTask(draft);
+            }
+            setModalState(null);
+          }}
+        />
       ) : null}
     </section>
   );
@@ -180,9 +124,3 @@ const taskFilters: Array<{ value: TaskFilter; label: string }> = [
   { value: "done", label: "완료" },
   { value: "all", label: "전체" }
 ];
-
-const priorityLabel: Record<Priority, string> = {
-  high: "높음",
-  medium: "보통",
-  low: "낮음"
-};

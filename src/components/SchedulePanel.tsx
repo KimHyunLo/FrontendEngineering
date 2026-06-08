@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { EventEditorModal } from "@/src/components/EventEditorModal";
 import type { EventEditorState } from "@/src/components/EventEditorModal";
-import { eventToDraft, formatDate, getEventsForDate } from "@/src/planner";
-import type { EventCategory, EventDraft, ScheduleEvent } from "@/src/planner";
+import { CATEGORY_LABEL, eventToDraft, formatDate, getEventsForDate, makeDefaultEventDraft } from "@/src/planner";
+import type { EventDraft, IsoDate, ScheduleEvent } from "@/src/planner";
 
 interface SchedulePanelProps {
-  selectedDate: string;
+  selectedDate: IsoDate;
   events: ScheduleEvent[];
   onAddEvent(draft: EventDraft): void;
   onUpdateEvent(id: string, draft: EventDraft): void;
@@ -19,18 +19,7 @@ export function SchedulePanel({ selectedDate, events, onAddEvent, onUpdateEvent,
   const selectedEvents = getEventsForDate(events, selectedDate);
 
   function openCreateModal() {
-    setModalState({
-      mode: "create",
-      draft: {
-        title: "",
-        date: selectedDate,
-        startTime: "09:00",
-        endTime: "10:00",
-        category: "work",
-        note: "",
-        reminderAt: null
-      }
-    });
+    setModalState({ mode: "create", draft: makeDefaultEventDraft(selectedDate) });
   }
 
   function openEditModal(event: ScheduleEvent) {
@@ -66,7 +55,7 @@ export function SchedulePanel({ selectedDate, events, onAddEvent, onUpdateEvent,
                       <span className="tag">
                         {item.startTime} - {item.endTime}
                       </span>
-                      <span className="tag">{categoryLabel[item.category]}</span>
+                      <span className="tag">{CATEGORY_LABEL[item.category]}</span>
                       {item.reminderAt ? <span className="tag">{item.reminderAt.replace("T", " ")}</span> : null}
                     </div>
                     {item.note ? <div className="item-note">{item.note}</div> : null}
@@ -105,9 +94,3 @@ export function SchedulePanel({ selectedDate, events, onAddEvent, onUpdateEvent,
   );
 }
 
-const categoryLabel: Record<EventCategory, string> = {
-  work: "업무",
-  personal: "개인",
-  study: "학습",
-  health: "건강"
-};
