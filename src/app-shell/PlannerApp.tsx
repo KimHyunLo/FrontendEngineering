@@ -6,14 +6,11 @@ import { NotificationMenu } from "@/src/components/NotificationMenu";
 import { SchedulePanel } from "@/src/components/SchedulePanel";
 import { TaskPanel } from "@/src/components/TaskPanel";
 import { WeekTimeline } from "@/src/components/WeekTimeline";
+import { usePlannerNavigation, routeFor } from "@/src/hooks/usePlannerNavigation";
+import type { CalendarView } from "@/src/hooks/usePlannerNavigation";
 import { usePlannerStore } from "@/src/hooks/usePlannerStore";
-import { addDays, addMonths, formatMonth, formatWeekTitle, parseIsoDate, todayIso, toIsoDate } from "@/src/planner";
+import { formatMonth, formatWeekTitle } from "@/src/planner";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import type { EventDraft, TaskDraft } from "@/src/planner";
-
-type CalendarView = "month" | "week";
 
 interface PlannerAppProps {
   view: CalendarView;
@@ -22,63 +19,12 @@ interface PlannerAppProps {
 
 export function PlannerApp({ view, initialDate }: PlannerAppProps) {
   const { state, hydrated, actions } = usePlannerStore();
-  const router = useRouter();
-  const routeDate = normalizeDate(initialDate);
-
-  useEffect(() => {
-    if (!hydrated) {
-      return;
-    }
-
-    const date = routeDate ?? todayIso();
-    actions.selectDate(date);
-
-    if (!routeDate) {
-      router.replace(routeFor(view, date), { scroll: false });
-    }
-  }, [hydrated, routeDate, router, view]);
+  const nav = usePlannerNavigation(view, state, hydrated, actions, initialDate);
 
   if (state === undefined) return null;
 
   const loadedState = state;
   const toolbarTitle = view === "month" ? formatMonth(loadedState.visibleMonth) : formatWeekTitle(loadedState.selectedDate);
-
-  function selectDate(date: string) {
-    actions.selectDate(date);
-    router.replace(routeFor(view, date), { scroll: false });
-  }
-
-  function movePrevious() {
-    selectDate(view === "month" ? addMonths(loadedState.visibleMonth, -1) : addDays(loadedState.selectedDate, -7));
-  }
-
-  function moveNext() {
-    selectDate(view === "month" ? addMonths(loadedState.visibleMonth, 1) : addDays(loadedState.selectedDate, 7));
-  }
-
-  function selectToday() {
-    selectDate(todayIso());
-  }
-
-  function addTask(draft: TaskDraft) {
-    actions.addTask(draft);
-    router.replace(routeFor(view, draft.dueDate), { scroll: false });
-  }
-
-  function updateTask(id: string, draft: TaskDraft) {
-    actions.updateTask(id, draft);
-    router.replace(routeFor(view, draft.dueDate), { scroll: false });
-  }
-
-  function addEvent(draft: EventDraft) {
-    actions.addEvent(draft);
-    router.replace(routeFor(view, draft.date), { scroll: false });
-  }
-
-  function updateEvent(id: string, draft: EventDraft) {
-    actions.updateEvent(id, draft);
-    router.replace(routeFor(view, draft.date), { scroll: false });
-  }
 
   return (
     <main className="app-shell">
@@ -88,13 +34,13 @@ export function PlannerApp({ view, initialDate }: PlannerAppProps) {
           <span>일정과 할 일</span>
         </div>
         <div className="calendar-toolbar" aria-label="캘린더 이동">
-          <button className="secondary-button" type="button" onClick={selectToday}>
+          <button className="secondary-button" type="button" onClick={nav.selectToday}>
             오늘
           </button>
-          <button className="icon-button" type="button" aria-label="이전" onClick={movePrevious}>
+          <button className="icon-button" type="button" aria-label="이전" onClick={nav.movePrevious}>
             {"<"}
           </button>
-          <button className="icon-button" type="button" aria-label="다음" onClick={moveNext}>
+          <button className="icon-button" type="button" aria-label="다음" onClick={nav.moveNext}>
             {">"}
           </button>
           <div className="toolbar-title">{toolbarTitle}</div>
@@ -125,22 +71,22 @@ export function PlannerApp({ view, initialDate }: PlannerAppProps) {
               events={loadedState.events}
               selectedDate={loadedState.selectedDate}
               visibleMonth={loadedState.visibleMonth}
-              onSelectDate={selectDate}
+              onSelectDate={nav.selectDate}
               onVisibleMonthChange={actions.setVisibleMonth}
             />
           ) : null}
           <SchedulePanel
             selectedDate={state.selectedDate}
             events={state.events}
-            onAddEvent={addEvent}
-            onUpdateEvent={updateEvent}
+            onAddEvent={nav.addEvent}
+            onUpdateEvent={nav.updateEvent}
             onDeleteEvent={actions.deleteEvent}
           />
           <TaskPanel
             selectedDate={state.selectedDate}
             tasks={state.tasks}
-            onAddTask={addTask}
-            onUpdateTask={updateTask}
+            onAddTask={nav.addTask}
+            onUpdateTask={nav.updateTask}
             onToggleTask={actions.toggleTask}
             onDeleteTask={actions.deleteTask}
           />
@@ -152,31 +98,19 @@ export function PlannerApp({ view, initialDate }: PlannerAppProps) {
             events={loadedState.events}
             selectedDate={loadedState.selectedDate}
             visibleMonth={loadedState.visibleMonth}
-            onSelectDate={selectDate}
+            onSelectDate={nav.selectDate}
           />
         ) : (
           <WeekTimeline
             tasks={loadedState.tasks}
             events={loadedState.events}
             selectedDate={loadedState.selectedDate}
-            onSelectDate={selectDate}
-            onAddEvent={addEvent}
-            onUpdateEvent={updateEvent}
+            onSelectDate={nav.selectDate}
+            onAddEvent={nav.addEvent}
+            onUpdateEvent={nav.updateEvent}
           />
         )}
       </section>
     </main>
   );
-}
-
-function routeFor(view: CalendarView, date: string): string {
-  return `/${view}?date=${date}`;
-}
-
-function normalizeDate(value: string | undefined): string | null {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return null;
-  }
-
-  return toIsoDate(parseIsoDate(value)) === value ? value : null;
 }

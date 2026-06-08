@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { Modal } from "@/src/components/Modal";
 import { nowLocalDateTime } from "@/src/planner";
-import type { EventCategory, EventDraft } from "@/src/planner";
+import type { EventCategory, EventDraft, IsoDate, LocalDateTime } from "@/src/planner";
 
 export type EventEditorState =
   | { mode: "create"; draft: EventDraft }
@@ -19,7 +19,7 @@ interface EventEditorModalProps {
 
 export function EventEditorModal({ title, initialDraft, isEditing, onClose, onSubmit }: EventEditorModalProps) {
   const [name, setName] = useState(initialDraft.title);
-  const [date, setDate] = useState(initialDraft.date);
+  const [date, setDate] = useState<string>(initialDraft.date);
   const [startTime, setStartTime] = useState(initialDraft.startTime);
   const [endTime, setEndTime] = useState(initialDraft.endTime);
   const [category, setCategory] = useState<EventCategory>(initialDraft.category);
@@ -34,12 +34,12 @@ export function EventEditorModal({ title, initialDraft, isEditing, onClose, onSu
 
     onSubmit({
       title: name,
-      date,
+      date: date as IsoDate,
       startTime,
       endTime,
       category,
       note,
-      reminderAt: reminderAt || null
+      reminderAt: (reminderAt || null) as LocalDateTime | null
     });
   }
 

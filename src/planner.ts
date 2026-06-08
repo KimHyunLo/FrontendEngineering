@@ -1,5 +1,8 @@
-export type IsoDate = string;
-export type LocalDateTime = string;
+declare const __isoDate: unique symbol;
+export type IsoDate = string & { readonly [__isoDate]: true };
+
+declare const __localDateTime: unique symbol;
+export type LocalDateTime = string & { readonly [__localDateTime]: true };
 export type Priority = "low" | "medium" | "high";
 export type EventCategory = "work" | "personal" | "study" | "health";
 export type NotificationStatus = "scheduled" | "ready" | "read";
@@ -102,7 +105,7 @@ export function toIsoDate(date: Date): IsoDate {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return `${year}-${month}-${day}` as IsoDate;
 }
 
 /**
@@ -114,7 +117,7 @@ export function toLocalDateTime(date: Date): LocalDateTime {
   const isoDate = toIsoDate(date);
   const hour = String(date.getHours()).padStart(2, "0");
   const minute = String(date.getMinutes()).padStart(2, "0");
-  return `${isoDate}T${hour}:${minute}`;
+  return `${isoDate}T${hour}:${minute}` as LocalDateTime;
 }
 
 /** 오늘 날짜를 IsoDate 형식으로 반환한다. */
@@ -128,13 +131,25 @@ export function nowLocalDateTime(): LocalDateTime {
 }
 
 /**
- * IsoDate 문자열을 `Date` 객체로 파싱한다. 시간대 오프셋 없이 로컬 자정으로 해석한다.
- * @param value `YYYY-MM-DD` 형식의 날짜 문자열
+ * IsoDate 문자열을 `Date` 객체로 변환한다. 시간대 오프셋 없이 로컬 자정으로 해석한다.
+ * @param value 유효한 `YYYY-MM-DD` 형식의 IsoDate
  * @returns 해당 날짜의 로컬 자정 Date 객체
  */
-export function parseIsoDate(value: IsoDate): Date {
+function isoDateToDate(value: IsoDate): Date {
   const [year = "0", month = "1", day = "1"] = value.split("-");
   return new Date(Number(year), Number(month) - 1, Number(day));
+}
+
+/**
+ * 임의의 문자열을 검증하여 유효한 `IsoDate`로 반환한다.
+ * `YYYY-MM-DD` 형식이 아니거나 존재하지 않는 날짜(예: 2월 30일)이면 `null`을 반환한다.
+ * @param value 검증할 문자열
+ * @returns 유효한 `IsoDate` 또는 `null`
+ */
+export function parseIsoDate(value: string): IsoDate | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = isoDateToDate(value as IsoDate);
+  return toIsoDate(date) === value ? (value as IsoDate) : null;
 }
 
 /**
@@ -143,7 +158,7 @@ export function parseIsoDate(value: IsoDate): Date {
  * @param amount 더할 일수 (음수면 이전 날짜)
  */
 export function addDays(value: IsoDate, amount: number): IsoDate {
-  const date = parseIsoDate(value);
+  const date = isoDateToDate(value);
   date.setDate(date.getDate() + amount);
   return toIsoDate(date);
 }
@@ -165,7 +180,7 @@ export function addMinutes(value: LocalDateTime, amount: number): LocalDateTime 
  * @param amount 더할 개월 수 (음수면 이전 달)
  */
 export function addMonths(value: IsoDate, amount: number): IsoDate {
-  const date = parseIsoDate(value);
+  const date = isoDateToDate(value);
   return toIsoDate(new Date(date.getFullYear(), date.getMonth() + amount, 1));
 }
 
@@ -174,7 +189,7 @@ export function addMonths(value: IsoDate, amount: number): IsoDate {
  * @param value 기준 날짜 (IsoDate)
  */
 export function startOfWeek(value: IsoDate): IsoDate {
-  const date = parseIsoDate(value);
+  const date = isoDateToDate(value);
   date.setDate(date.getDate() - date.getDay());
   return toIsoDate(date);
 }
@@ -184,7 +199,7 @@ export function startOfWeek(value: IsoDate): IsoDate {
  * @param value 기준 날짜 (IsoDate)
  */
 export function formatMonth(value: IsoDate): string {
-  const date = parseIsoDate(value);
+  const date = isoDateToDate(value);
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
 }
 
@@ -193,7 +208,7 @@ export function formatMonth(value: IsoDate): string {
  * @param value 기준 날짜 (IsoDate)
  */
 export function formatWeekTitle(value: IsoDate): string {
-  const date = parseIsoDate(value);
+  const date = isoDateToDate(value);
   const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
   const weekNumber = Math.floor((date.getDate() + firstDayOfMonth.getDay() - 1) / 7) + 1;
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${weekNumber}번째 주`;
@@ -204,7 +219,7 @@ export function formatWeekTitle(value: IsoDate): string {
  * @param value 기준 날짜 (IsoDate)
  */
 export function formatDate(value: IsoDate): string {
-  const date = parseIsoDate(value);
+  const date = isoDateToDate(value);
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 }
 
@@ -214,7 +229,7 @@ export function formatDate(value: IsoDate): string {
  */
 export function formatDateTime(value: LocalDateTime): string {
   const [date, time = ""] = value.split("T");
-  return `${formatDate(date)} ${time}`;
+  return `${formatDate(date as IsoDate)} ${time}`;
 }
 
 /**
@@ -232,7 +247,7 @@ export function compareDateTime(left: LocalDateTime, right: LocalDateTime): numb
  * @param today 오늘 날짜 (isToday 판별에 사용)
  */
 export function createMonthGrid(visibleMonth: IsoDate, today: IsoDate): CalendarDay[] {
-  const monthStart = parseIsoDate(visibleMonth);
+  const monthStart = isoDateToDate(visibleMonth);
   const firstDay = new Date(monthStart.getFullYear(), monthStart.getMonth(), 1);
   const gridStart = new Date(firstDay.getTime() - firstDay.getDay() * DAY_MS);
   const currentMonth = firstDay.getMonth();
@@ -259,7 +274,7 @@ export function createWeekDays(selectedDate: IsoDate, today: IsoDate): WeekDay[]
   const start = startOfWeek(selectedDate);
   return Array.from({ length: 7 }, (_, index) => {
     const date = addDays(start, index);
-    const parsed = parseIsoDate(date);
+    const parsed = isoDateToDate(date);
     return {
       date,
       dayOfMonth: parsed.getDate(),
@@ -310,7 +325,7 @@ export function createInitialState(): PlannerState {
       priority: "high",
       done: false,
       note: "",
-      reminderAt: `${today}T16:00`,
+      reminderAt: `${today}T16:00` as LocalDateTime,
       createdAt,
       updatedAt: createdAt
     },
@@ -321,7 +336,7 @@ export function createInitialState(): PlannerState {
       priority: "medium",
       done: false,
       note: "",
-      reminderAt: `${tomorrow}T09:30`,
+      reminderAt: `${tomorrow}T09:30` as LocalDateTime,
       createdAt,
       updatedAt: createdAt
     }
@@ -336,7 +351,7 @@ export function createInitialState(): PlannerState {
       endTime: "10:50",
       category: "work",
       note: "",
-      reminderAt: `${today}T09:50`,
+      reminderAt: `${today}T09:50` as LocalDateTime,
       createdAt,
       updatedAt: createdAt
     },
@@ -348,7 +363,7 @@ export function createInitialState(): PlannerState {
       endTime: "21:00",
       category: "study",
       note: "",
-      reminderAt: `${nextWeek}T19:30`,
+      reminderAt: `${nextWeek}T19:30` as LocalDateTime,
       createdAt,
       updatedAt: createdAt
     }
@@ -437,6 +452,20 @@ export function updateEventFromDraft(event: ScheduleEvent, draft: EventDraft): S
     note: draft.note.trim(),
     reminderAt: draft.reminderAt,
     updatedAt: nowLocalDateTime()
+  };
+}
+
+/**
+ * `Task`를 `TaskDraft`로 변환한다. 편집 모달을 열 때 초기값으로 사용된다.
+ * @param task 변환할 태스크
+ */
+export function taskToDraft(task: Task): TaskDraft {
+  return {
+    title: task.title,
+    dueDate: task.dueDate,
+    priority: task.priority,
+    note: task.note ?? "",
+    reminderAt: task.reminderAt
   };
 }
 
@@ -546,6 +575,45 @@ export const TASK_PRIORITY_CLASS: Record<Priority, string> = {
   medium: "priority-medium",
   low: "priority-low"
 };
+
+/** `Priority` 값을 표시용 한국어 레이블로 매핑한다. */
+export const PRIORITY_LABEL: Record<Priority, string> = {
+  high: "높음",
+  medium: "보통",
+  low: "낮음"
+};
+
+/** `EventCategory` 값을 표시용 한국어 레이블로 매핑한다. */
+export const CATEGORY_LABEL: Record<EventCategory, string> = {
+  work: "업무",
+  personal: "개인",
+  study: "학습",
+  health: "건강"
+};
+
+/** 새 태스크 작성 시 사용할 기본 `TaskDraft`를 반환한다. */
+export function makeDefaultTaskDraft(date: IsoDate): TaskDraft {
+  return {
+    title: "",
+    dueDate: date,
+    priority: "medium",
+    note: "",
+    reminderAt: null
+  };
+}
+
+/** 새 일정 작성 시 사용할 기본 `EventDraft`를 반환한다. */
+export function makeDefaultEventDraft(date: IsoDate): EventDraft {
+  return {
+    title: "",
+    date,
+    startTime: "09:00",
+    endTime: "10:00",
+    category: "work",
+    note: "",
+    reminderAt: null
+  };
+}
 
 /**
  * 우선순위를 정렬 가중치 숫자로 변환한다. high=3, medium=2, low=1.

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { compareDateTime, formatDateTime } from "@/src/planner";
+import type { LocalDateTime } from "@/src/planner";
 
 type NotificationFilter = "ready" | "scheduled" | "read" | "all";
 
@@ -9,7 +10,7 @@ type Notification = {
   status: "ready" | "scheduled" | "read";
   title: string;
   body: string;
-  notifyAt: string;
+  notifyAt: LocalDateTime;
   id: string;
 }
 
