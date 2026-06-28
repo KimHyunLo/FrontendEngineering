@@ -1,37 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { compareDateTime, formatDateTime } from "@/src/planner";
-import type { LocalDateTime } from "@/src/planner";
-
-type NotificationFilter = "ready" | "scheduled" | "read" | "all";
-
-type Notification = {
-  status: "ready" | "scheduled" | "read";
-  title: string;
-  body: string;
-  notifyAt: LocalDateTime;
-  id: string;
-}
+import { filterNotifications, formatDateTime, sortNotificationsByTime } from "@/src/planner";
+import type { NotificationFilter, PlannerNotification } from "@/src/planner";
 
 interface NotificationMenuProps {
-  notifications: Notification[]
+  notifications: PlannerNotification[];
   onRead(id: string): void;
   onSnooze(id: string, minutes: number): void;
 }
-
-const filterNotifications = (notifications: Notification[], filter: NotificationFilter) => notifications
-  .filter((notification) => filter === "all" || notification.status === filter);
-
-const sortNotifications = (notifications: Notification[]) => notifications
-  .sort((left, right) => compareDateTime(left.notifyAt, right.notifyAt));
 
 export function NotificationMenu({ notifications, onRead, onSnooze }: NotificationMenuProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<NotificationFilter>("ready");
   const readyCount = notifications.filter((notification) => notification.status === "ready").length;
 
-  const visibleNotifications = sortNotifications(filterNotifications(notifications, filter))
+  const visibleNotifications = sortNotificationsByTime(filterNotifications(notifications, filter));
 
   return (
     <div className="notification-menu-wrap">
@@ -110,7 +94,7 @@ const notificationFilters: Array<{ value: NotificationFilter; label: string }> =
   { value: "all", label: "전체" }
 ];
 
-const statusLabel: Record<Notification["status"], string> = {
+const statusLabel: Record<PlannerNotification["status"], string> = {
   scheduled: "예정",
   ready: "도착",
   read: "확인"

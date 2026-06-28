@@ -9,7 +9,7 @@ import { WeekTimeline } from "@/src/components/WeekTimeline";
 import { usePlannerNavigation, routeFor } from "@/src/hooks/usePlannerNavigation";
 import type { CalendarView } from "@/src/hooks/usePlannerNavigation";
 import { usePlannerStore } from "@/src/hooks/usePlannerStore";
-import { formatMonth, formatWeekTitle } from "@/src/planner";
+import { createCalendarDayViewModels, formatMonth, formatWeekTitle, todayIso } from "@/src/planner";
 import Link from "next/link";
 
 interface PlannerAppProps {
@@ -94,10 +94,7 @@ export function PlannerApp({ view, initialDate }: PlannerAppProps) {
 
         {view === "month" ? (
           <CalendarPanel
-            tasks={loadedState.tasks}
-            events={loadedState.events}
-            selectedDate={loadedState.selectedDate}
-            visibleMonth={loadedState.visibleMonth}
+            days={createCalendarDayViewModels(loadedState.visibleMonth, todayIso(), loadedState.selectedDate, loadedState.tasks, loadedState.events)}
             onSelectDate={nav.selectDate}
           />
         ) : (
