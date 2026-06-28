@@ -591,6 +591,101 @@ export const CATEGORY_LABEL: Record<EventCategory, string> = {
   health: "건강"
 };
 
+export type TaskFilter = "selected" | "open" | "done" | "all";
+
+export function filterTasks(tasks: Task[], filter: TaskFilter, selectedDate: IsoDate): Task[] {
+  if (filter === "selected") return getTasksForDate(tasks, selectedDate);
+  if (filter === "open") return tasks.filter((task) => !task.done);
+  if (filter === "done") return tasks.filter((task) => task.done);
+  return tasks;
+}
+
+export type NotificationFilter = "ready" | "scheduled" | "read" | "all";
+
+export function filterNotifications(notifications: PlannerNotification[], filter: NotificationFilter): PlannerNotification[] {
+  return notifications.filter((notification) => filter === "all" || notification.status === filter);
+}
+
+export function sortNotificationsByTime(notifications: PlannerNotification[]): PlannerNotification[] {
+  return [...notifications].sort((left, right) => compareDateTime(left.notifyAt, right.notifyAt));
+}
+
+export interface CalendarDayViewModel {
+  date: IsoDate;
+  dayOfMonth: number;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  isSelected: boolean;
+  className: string;
+  visibleEvents: Array<{ id: string; startTime: string; title: string; categoryClass: string }>;
+  visibleTasks: Array<{ id: string; title: string; priorityClass: string }>;
+  hiddenCount: number;
+}
+
+export function createCalendarDayViewModels(
+  visibleMonth: IsoDate,
+  today: IsoDate,
+  selectedDate: IsoDate,
+  tasks: Task[],
+  events: ScheduleEvent[]
+): CalendarDayViewModel[] {
+  return createMonthGrid(visibleMonth, today).map((day) => {
+    const dayTasks = getTasksForDate(tasks, day.date).filter((task) => !task.done);
+    const dayEvents = getEventsForDate(events, day.date);
+    const visibleEvents = dayEvents.slice(0, 3);
+    const visibleTasks = dayTasks.slice(0, Math.max(0, 3 - visibleEvents.length));
+    const hiddenCount = dayEvents.length + dayTasks.length - visibleEvents.length - visibleTasks.length;
+    const className = ["day-cell", day.isCurrentMonth ? "" : "is-muted", selectedDate === day.date ? "is-selected" : ""]
+      .filter(Boolean)
+      .join(" ");
+    return {
+      ...day,
+      isSelected: selectedDate === day.date,
+      className,
+      visibleEvents: visibleEvents.map((event) => ({
+        id: event.id,
+        startTime: event.startTime,
+        title: event.title,
+        categoryClass: EVENT_CATEGORY_CLASS[event.category]
+      })),
+      visibleTasks: visibleTasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        priorityClass: TASK_PRIORITY_CLASS[task.priority]
+      })),
+      hiddenCount
+    };
+  });
+}
+
+export interface TaskViewModel {
+  id: string;
+  title: string;
+  done: boolean;
+  note: string;
+  dueDateFormatted: string;
+  priorityLabel: string;
+  rowClassName: string;
+  reminderFormatted: string | null;
+  toggleLabel: string;
+  draft: TaskDraft;
+}
+
+export function toTaskViewModel(task: Task): TaskViewModel {
+  return {
+    id: task.id,
+    title: task.title,
+    done: task.done,
+    note: task.note,
+    dueDateFormatted: formatDate(task.dueDate),
+    priorityLabel: PRIORITY_LABEL[task.priority],
+    rowClassName: `task-row ${TASK_PRIORITY_CLASS[task.priority]}${task.done ? " done" : ""}`,
+    reminderFormatted: task.reminderAt ? task.reminderAt.replace("T", " ") : null,
+    toggleLabel: task.done ? "열기" : "완료",
+    draft: taskToDraft(task)
+  };
+}
+
 /** 새 태스크 작성 시 사용할 기본 `TaskDraft`를 반환한다. */
 export function makeDefaultTaskDraft(date: IsoDate): TaskDraft {
   return {

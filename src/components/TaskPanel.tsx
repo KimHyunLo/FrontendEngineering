@@ -1,12 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { formatDate, getTasksForDate, makeDefaultTaskDraft, PRIORITY_LABEL, taskToDraft } from "@/src/planner";
-import type { IsoDate, Task, TaskDraft } from "@/src/planner";
+import { filterTasks, makeDefaultTaskDraft, toTaskViewModel } from "@/src/planner";
+import type { IsoDate, Task, TaskDraft, TaskFilter, TaskViewModel } from "@/src/planner";
 import { TaskEditorModal } from "@/src/components/TaskEditorModal";
 import type { TaskEditorState } from "@/src/components/TaskEditorModal";
-
-type TaskFilter = "selected" | "open" | "done" | "all";
 
 interface TaskPanelProps {
   selectedDate: IsoDate;
@@ -21,25 +19,17 @@ export function TaskPanel({ selectedDate, tasks, onAddTask, onUpdateTask, onTogg
   const [modalState, setModalState] = useState<TaskEditorState | null>(null);
   const [filter, setFilter] = useState<TaskFilter>("selected");
 
-  const visibleTasks = useMemo(() => {
-    if (filter === "selected") {
-      return getTasksForDate(tasks, selectedDate);
-    }
-    if (filter === "open") {
-      return tasks.filter((task) => !task.done);
-    }
-    if (filter === "done") {
-      return tasks.filter((task) => task.done);
-    }
-    return tasks;
-  }, [filter, selectedDate, tasks]);
+  const visibleTasks = useMemo(
+    () => filterTasks(tasks, filter, selectedDate).map(toTaskViewModel),
+    [filter, selectedDate, tasks]
+  );
 
   function openCreateModal() {
     setModalState({ mode: "create", draft: makeDefaultTaskDraft(selectedDate) });
   }
 
-  function openEditModal(task: Task) {
-    setModalState({ mode: "edit", taskId: task.id, draft: taskToDraft(task) });
+  function openEditModal(vm: TaskViewModel) {
+    setModalState({ mode: "edit", taskId: vm.id, draft: vm.draft });
   }
 
   return (
@@ -69,26 +59,26 @@ export function TaskPanel({ selectedDate, tasks, onAddTask, onUpdateTask, onTogg
           {visibleTasks.length === 0 ? (
             <div className="empty-state">항목 없음</div>
           ) : (
-            visibleTasks.map((task) => (
-              <article className={`task-row priority-${task.priority} ${task.done ? "done" : ""}`} key={task.id}>
+            visibleTasks.map((vm) => (
+              <article className={vm.rowClassName} key={vm.id}>
                 <div className="item-line">
                   <div>
-                    <div className="item-title">{task.title}</div>
+                    <div className="item-title">{vm.title}</div>
                     <div className="item-meta">
-                      <span className="tag">{formatDate(task.dueDate)}</span>
-                      <span className="tag">{PRIORITY_LABEL[task.priority]}</span>
-                      {task.reminderAt ? <span className="tag">{task.reminderAt.replace("T", " ")}</span> : null}
+                      <span className="tag">{vm.dueDateFormatted}</span>
+                      <span className="tag">{vm.priorityLabel}</span>
+                      {vm.reminderFormatted ? <span className="tag">{vm.reminderFormatted}</span> : null}
                     </div>
-                    {task.note ? <div className="item-note">{task.note}</div> : null}
+                    {vm.note ? <div className="item-note">{vm.note}</div> : null}
                   </div>
                   <div className="row-actions">
-                    <button className="secondary-button" type="button" onClick={() => openEditModal(task)}>
+                    <button className="secondary-button" type="button" onClick={() => openEditModal(vm)}>
                       수정
                     </button>
-                    <button className="secondary-button" type="button" onClick={() => onToggleTask(task.id)}>
-                      {task.done ? "열기" : "완료"}
+                    <button className="secondary-button" type="button" onClick={() => onToggleTask(vm.id)}>
+                      {vm.toggleLabel}
                     </button>
-                    <button className="danger-button" type="button" onClick={() => onDeleteTask(task.id)}>
+                    <button className="danger-button" type="button" onClick={() => onDeleteTask(vm.id)}>
                       삭제
                     </button>
                   </div>
